@@ -43,6 +43,20 @@ def get_secret(kvpath, kvkey='all'):
     if 'password' in read_response['data']['data'].keys():
       print('Password: {val}'.format(val=read_response['data']['data']['password'],))
 
+def list_versions(secret):
+  list_versions = client.secrets.kv.v2.read_secret_version(
+    path=secret,
+  )
+  i = 1
+  print('Versions for secret {}:'.format(secret))
+  while i < int(list_versions['data']['metadata']['version']):
+    current_version = client.secrets.kv.v2.read_secret_version(
+      path=secret,
+      version=i,
+    )
+    print('Version: {version} created at {created}'.format(version=current_version['data']['metadata']['version'], created=current_version['data']['metadata']['created_time']))
+    i += 1
+
 def list_secrets():
   list_response = client.secrets.kv.v2.list_secrets(path='')
   for key in list_response['data']['keys']:
@@ -72,6 +86,8 @@ def main():
   parser_list = subparsers.add_parser('list', description='List existing secrets')
   parser_delete = subparsers.add_parser('delete', description='Delete secret from store')
   parser_delete.add_argument('secret', help='Name of the secret to delete')
+  parser_versions = subparsers.add_parser('versions', description='List number of versions for a secret')
+  parser_versions.add_argument('secret', help='Name of the secret to lookup versions for')
   args = parser.parse_args()
 
   if args.subparser_name == 'get':
@@ -88,6 +104,9 @@ def main():
 
   if args.subparser_name == 'delete':
     delete_secret(args.secret)
+
+  if args.subparser_name == 'versions':
+    list_versions(args.secret)
 
 if __name__ == '__main__':
   main()

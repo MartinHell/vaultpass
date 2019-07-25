@@ -1,4 +1,7 @@
 import yaml
+import pyperclip
+import multiprocessing
+import os
 import hvac
 import sys
 import argparse
@@ -9,6 +12,21 @@ with open('/etc/vp/config.yml', 'r', encoding='utf8') as f:
 
 client = hvac.Client(url=config['vault']['vault_url'])
 client.token = config['vault']['client_token']
+
+def pyperclip_copy_wrapper(text):
+  fdnull = os.open(os.devnull, os.O_WRONLY)
+  os.dup2(fdnull, 1)
+  try:
+    pyperclip.copy(text)
+  finally:
+    os.close(1)
+    os.close(fdnull)
+
+def copy_to_clipboard(text):
+  p = multiprocessing.Process(name='copy-to-clipboard', target=pyperclip_copy_wrapper, args=(text,))
+  p.start()
+  p.join()
+  return p.exitcode
 
 def create_update_secret(kvpath, username, kvpass, url):
   dictionary = {'username': username, 'password': kvpass, 'url': url}
@@ -24,12 +42,12 @@ def get_secret(kvpath, kvversion=0, kvkey='all'):
   )
   if kvkey == 'username':
     if 'username' in read_response['data']['data'].keys():
-      print('{val}'.format(val=read_response['data']['data']['username'],))
+      copy_to_clipboard(read_response['data']['data']['username'])
     else:
       print('No Username for secret {}'.format(kvpath))
   elif kvkey == 'password':
-    if 'username' in read_response['data']['data'].keys():
-      print('{val}'.format(val=read_response['data']['data']['password'],))
+    if 'password' in read_response['data']['data'].keys():
+      copy_to_clipboard(read_response['data']['data']['password'])
     else:
       print('No Password for secret {}'.format(kvpath))
   elif kvkey == 'url':
@@ -84,7 +102,7 @@ def main():
   parser_update.add_argument('-s', dest='secret', required=True, help='Name of the secret for the username/password')
   parser_get = subparsers.add_parser('get', description='Get password and username.\nExample:\nvp.py get github', formatter_class=RawTextHelpFormatter)
   parser_get.add_argument('secret', help='Name of the secret for the username/password')
-  parser_get.add_argument('-t', dest='get_secret', required=False, default='All', help='What type to get password, url, username or all')
+  parser_get.add_argument('-t', dest='get_secret', required=False, default='All', help='What type to get password, url, username or all (username and password will not be printed on screen but copied to your clipboard)')
   parser_get.add_argument('-v', dest='version', required=False, help='Which version of the secret to get (Use version subcommand to find out which versions exists) default to latest unless set')
   parser_list = subparsers.add_parser('list', description='List existing secrets')
   parser_delete = subparsers.add_parser('delete', description='Delete secret from store')

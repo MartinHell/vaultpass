@@ -1,0 +1,3 @@
+vault:
+  vault_url: http://localhost:8200
+  client_token: clienttoken_information

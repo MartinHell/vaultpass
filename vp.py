@@ -17,9 +17,11 @@ def create_update_secret(kvpath, username, kvpass, url):
     secret=dictionary,
   )
 
-def get_secret(kvpath, kvkey='all'):
-  read_response = client.secrets.kv.read_secret_version(path=kvpath)
-  #print(read_response)
+def get_secret(kvpath, kvversion=0, kvkey='all'):
+  read_response = client.secrets.kv.v2.read_secret_version(
+    path=kvpath,
+    version=kvversion,
+  )
   if kvkey == 'username':
     if 'username' in read_response['data']['data'].keys():
       print('{val}'.format(val=read_response['data']['data']['username'],))
@@ -82,7 +84,8 @@ def main():
   parser_update.add_argument('-s', dest='secret', required=True, help='Name of the secret for the username/password')
   parser_get = subparsers.add_parser('get', description='Get password and username.\nExample:\nvp.py get github', formatter_class=RawTextHelpFormatter)
   parser_get.add_argument('secret', help='Name of the secret for the username/password')
-  parser_get.add_argument('-v', dest='get_secret', required=False, default='All', help='What to get password, url, username or all')
+  parser_get.add_argument('-t', dest='get_secret', required=False, default='All', help='What type to get password, url, username or all')
+  parser_get.add_argument('-v', dest='version', required=False, help='Which version of the secret to get (Use version subcommand to find out which versions exists) default to latest unless set')
   parser_list = subparsers.add_parser('list', description='List existing secrets')
   parser_delete = subparsers.add_parser('delete', description='Delete secret from store')
   parser_delete.add_argument('secret', help='Name of the secret to delete')
@@ -91,7 +94,7 @@ def main():
   args = parser.parse_args()
 
   if args.subparser_name == 'get':
-    get_secret(args.secret, args.get_secret) 
+    get_secret(args.secret, args.version, args.get_secret) 
 
   if args.subparser_name == 'create':
     create_update_secret(args.secret, args.username, args.password, args.url)

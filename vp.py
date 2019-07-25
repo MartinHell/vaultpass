@@ -51,7 +51,7 @@ def list_versions(secret):
   )
   i = 1
   print('Versions for secret {}:'.format(secret))
-  while i < int(list_versions['data']['metadata']['version']):
+  while i <= int(list_versions['data']['metadata']['version']):
     current_version = client.secrets.kv.v2.read_secret_version(
       path=secret,
       version=i,
